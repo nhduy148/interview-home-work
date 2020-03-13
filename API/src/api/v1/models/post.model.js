@@ -1,12 +1,10 @@
-const mongoose = require('mongoose'); // Erase if already required
+const mongoose = require('mongoose');
 
-// Declare the Schema of the Mongo model
 var postSchema = new mongoose.Schema({
   id: {
+    unique: true,
     type: Number,
     required: true,
-    unique: true,
-    index: true,
   },
   owner: {
     type: Number,
@@ -22,11 +20,9 @@ var postSchema = new mongoose.Schema({
   },
   created_at: {
     type: Date,
-    required: true,
     default: Date.now(),
   },
   tags: Array,
 });
 
-//Export the model
 module.exports = mongoose.model('Post', postSchema);

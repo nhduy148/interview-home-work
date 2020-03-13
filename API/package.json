@@ -20,6 +20,7 @@
     "nodemon": "^1.19.4"
   },
   "scripts": {
+    "init": "node ./src/init/generateData.js",
     "start": "nodemon ./src/Server.js"
   },
   "eslintConfig": {

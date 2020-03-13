@@ -1,7 +1,6 @@
 const { saltRounds } = require('../../../config/vars');
 
 const bcrypt = require('bcrypt');
-// import { ver} from 'jsonwebtoken';
 const mongoose = require('mongoose');
 
 // Declare the Schema of the Mongo model
@@ -22,15 +21,12 @@ var userSchema = new mongoose.Schema({
   },
   name: {
     type: String,
-    required: true,
   },
   dob: {
-    type: Date,
-    required: true,
+    type: String,
   },
   created_at: {
     type: Number,
-    required: true,
     default: Date.now()
   },
 });

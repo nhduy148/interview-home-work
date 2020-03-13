@@ -1,12 +1,11 @@
-const { Schema } = require('mongoose'); // Erase if already required
+const mongoose = require('mongoose');
+const { Schema } = require('mongoose');
 
-// Declare the Schema of the Mongo model
 const commentSchema = new Schema({
   id: {
+    unique: true,
     type: Number,
     required: true,
-    unique: true,
-    index: true,
   },
   owner: {
     type: Number,
@@ -21,11 +20,10 @@ const commentSchema = new Schema({
     required: true,
   },
   created_at: {
-    type: Date,
+    type: Number,
     required: true,
     default: Date.now(),
   },
 });
 
-//Export the model
 module.exports = mongoose.model('Comment', commentSchema);

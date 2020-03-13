@@ -1,9 +1,8 @@
-const { DB_NAME, DB_URL } = require('./config/vars');
-const { ValidationError } = require('express-validation')
 const express = require('express');
 const app = express();
 const cors = require("cors");
 const mongoose = require("mongoose");
+const { DB_NAME, DB_URL } = require('./config/vars');
 const dbConnection = `${DB_URL}/${DB_NAME}`;
 
 require('dotenv').config()
@@ -26,12 +25,18 @@ app.use(cors({
 	credentials: true
 }))
 
-const user = require('./api/v1/routes/user');
+const user = require('./api/v1/routes/user.route');
+const post = require('./api/v1/routes/post.route');
 // let authRoutes = require('./routes/auth.route');
 
 app.use( "/user", user, (err, req, res, next) => {
   res.status(400).json(err);
 })
+
+app.use( "/post", post, (err, req, res, next) => {
+  res.status(400).json(err);
+})
+
 
 app.use( (req, res, next) => {
 	// res.setHeader('Access-Control-Allow-Origin', '*');
