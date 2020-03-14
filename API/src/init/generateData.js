@@ -10,7 +10,6 @@ const fileUser = require("./data/users.json");
 const filePost = require("./data/posts.json");
 const flieComment = require("./data/comments.json");
 
-
 mongoose.connect(
   dbConnection, 
 	{ useNewUrlParser: true,
@@ -24,9 +23,9 @@ mongoose.connect(
 })
 
 Counters.insertMany([
-  {forCollection: "users"},
-  {forCollection: "posts"},
-  {forCollection: "comments"},
+  {forCollection: "users", nextID: fileUser.length + 1},
+  {forCollection: "posts", nextID: filePost.length + 1},
+  {forCollection: "comments", nextID: flieComment.length + 1},
 ])
 .then( docs => console.log("Generated Counters collection."))
 .catch( err => console.log(err) )

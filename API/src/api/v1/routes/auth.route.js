@@ -1,14 +1,13 @@
+const express = require("express");
+const router = express.Router();
+const validate = require('express-validation');
+
+// Controller
 const authCtrl = require('../controllers/auth.controller')
+const authValid = require('../validations/auth.validation');
 
-module.exports = app => {
+router.post('/register', validate(authValid.register, {}, {}), authCtrl.registerUser);
+router.post('/login', validate(authValid.login, {}, {}), authCtrl.login);
+router.get('/verify', authCtrl.auth);
 
-  app.post('/login', authCtrl.login)
-
-  app.post('/register', authCtrl.register)
-
-  app.get('/auth', authCtrl.auth)
-
-  app.get('/logout', authCtrl.logout)
-
-  app.post('/test', authCtrl.test)
-}
+module.exports = router;

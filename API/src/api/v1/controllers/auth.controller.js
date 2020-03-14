@@ -1,112 +1,102 @@
-// import { ACCESS_TOKEN_LIFE, ACCESS_TOKEN_SECRET_KEY, REFRESH_TOKEN_SECRET } from '../config/vars';
-const DB = require('../../../DB/DB');
-const bcrypt = require('bcrypt');
-const saltRounds = 10;
-const jwt = require('jsonwebtoken');
-require('dotenv').config({path: __dirname+'../.env'});
-
-const JWT_KEY = process.env.JWT_KEY
-
-const { getNextID } = require('./common');
+const { nextID } = require('../../../helpers/counters');
+const { generateToken, verifyToken } = require('../../../helpers/jwt');
+const User = require('../models/user.model');
+const httpStatus = require('http-status');
 
 
 module.exports = {
-  login: (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5002');
-    res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Methods', 'POST');
+  login: async (req, res) => {
+    try {
+      
+      let { username, password } = req.body;
+      const user = await User.findOne({ username }).exec();
+      const isPasswordExact = await user.comparePassword(password)
+      const message = !user ? "User not found!" : !isPasswordExact ? "Wrong passwrod!" : "Login Successful!";
+      const code = !user || !isPasswordExact ? httpStatus.NON_AUTHORITATIVE_INFORMATION : httpStatus.OK;
+      const status = !user || !isPasswordExact ? false : true;
+      const token = status === true ? await generateToken(user) : false;
 
-    let { username, password } = req.body;
-
-    DB.open()
-    .then( db => db.collection("users") )
-    .then( users => {
-      users.findOne( {username: username}, (err, user) => {
-        if(err) res.json({ status: false, result: err });
-        else if(!user) res.json({ status: false, result: "User not found!" })
-        else {
-          
-          bcrypt.compare(password, user.password)
-          .then( response => {
-            if(response === true) {
-              const data = { username: user.username, userID: user.user_id, name: user.nicename, role: user.role }
-              const token = jwt.sign(data, JWT_KEY);
-              res.cookie("token", token, {
-                maxAge: 3 * 24 * 60 * 60 * 1000,
-                httpOnly: true,
-                //secure: true,
-              })
-              res.status(200).json({ status: true, result: "Login Successful!", token: token });
-            }
-            else res.status(200).json({ status: false, result: "Wrong passwrod!" })
-          } )
-          .catch( err => res.json({ status: false, result: err }) )
-        }
-      })
-    })
-  },
-
-  register: (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5002');
-    res.setHeader('Access-Control-Allow-Methods', 'POST');
-
-    let { username, password, nicename, email } = req.body;
-
-    if(username && password && email) {
-
-      password = bcrypt.hashSync(password, saltRounds);
-
-      DB.open()
-      .then( db => {
-        const users = db.collection("users");
-  
-        getNextID(db, "user_id")
-        .then( userID => {
-          if(userID.lastErrorObject.updatedExisting) {
-            const data = {
-              user_id: userID.value.value,
-              username: username,
-              password: password,
-              nicename: nicename,
-              email: email,
-              user_image: "",
-              active_key: "",
-              role: 1,
-              meta: {}
-            }
-            users.insertOne(data, (err, result) => {
-              if( err ) {
-                err.code === 11000
-                ? res.json({status: false, result: `Usename "${username}" has already been taken.`})
-                : res.json({status: false, result: "Something went wrong."})
-              }
-              else res.status(200).json({status: true, result: "Register Successful!"})
-              // else res.send(result);
-              // result.insertedCount !== 1
-            })
-          }
+      if( token ) {
+        res.cookie("token", token, {
+          maxAge: 3 * 24 * 60 * 60 * 1000,
+          httpOnly: true,
+          //secure: true,
         })
-      })
+      }
+      
+      res.send({
+        result: message,
+        code: code,
+        status: status,
+        token: token
+      });
     }
-    else {
-      res.json({ status: false, result: "Please fill in all required fields." })
+    catch(err) {
+      res.send({
+        result: err,
+        code: httpStatus.CONFLICT,
+        status: false,
+      });
     }
   },
   
-  auth: (req, res, next) => {
+  auth: async (req, res, next) => {
     let token = req.headers.cookie
     if(token) {
       token = token.replace('token=', '');
-      jwt.verify(token, JWT_KEY, (err, user) => {
-        if(err) {
-          res.status(400).json({ status: false, result: { error: "Something went wrong."} })
-          throw err;
-        }
-        else res.json({status: true, result: user});
-      });
+      const userInfo = await verifyToken(token);
+      res.send({
+        status: true,
+        code: httpStatus.OK,
+        result: userInfo
+      })
     }
     else {
-      res.json({status: false, result: { error: "Token is not valid yet. Please log in again."} });
+      res.send({
+        result: { error: "Token is not valid yet. Please log in again."},
+        code: httpStatus.CONFLICT,
+        status: false,
+      });
+    }
+  },
+
+  registerUser: async (req, res, next) => {
+    try {
+      const { username, password, name, dob } = req.body;
+      const isUserExists = await User.findOne({ username });
+      const nextUserID = await nextID("users");
+
+      if (isUserExists) {
+        res.send({
+          message: 'This "username" is already exists.',
+          code: httpStatus.CONFLICT,
+          status: false,
+        });
+      } else {
+        const userData = new User({
+          id: nextUserID,
+          username: username,
+          password: password,
+          name: name,
+          dob: dob
+        });
+
+        const user = await userData.save()
+        formattedData = user.format();
+        
+        res.send({
+          status: true,
+          code: httpStatus.CREATED,
+          result: formattedData
+        })
+      }
+    }
+    catch( err ) { 
+      res.send({
+        status: false,
+        code: httpStatus.SERVER_ERROR,
+        result: err
+      })
     }
   },
 

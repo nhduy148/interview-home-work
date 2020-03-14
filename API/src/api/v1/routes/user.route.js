@@ -10,7 +10,7 @@ const userCtrl = require('../controllers/user.controller')
 
 router.get('/', validate(userValid.getUsers, {}, {}), userCtrl.getListUser);
 
-router.post('/register', validate(userValid.createUser, {}, {}), userCtrl.registerUser);
+router.post('/add', validate(userValid.createUser, {}, {}), userCtrl.addUser);
 
 router.route('/:id')
 .get(validate(userValid.getUser, {}, {}), userCtrl.getUserByID)

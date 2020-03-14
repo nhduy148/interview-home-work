@@ -31,7 +31,7 @@ module.exports = {
     )
     .catch( err => 
       res.send({
-        status: true,
+        status: false,
         code: httpStatus.SERVER_ERROR,
         result: err
       })
@@ -51,49 +51,41 @@ module.exports = {
     )
     .catch( err => 
       res.send({
-        status: true,
+        status: false,
         code: httpStatus.SERVER_ERROR,
         result: err
       })
     )
   },
 
-  registerUser: async (req, res, next) => {
+  addUser: async (req, res) => {
+
     const { username, password, name, dob } = req.body;
-    const isUserExists = await User.findOne({ username });
     const nextUserID = await nextID("users");
+    
+    const user = new User({
+      id: nextUserID,
+      username: username,
+      password: password,
+      name: name,
+      dob: dob
+    });
 
-    if (isUserExists) {
+    user.save()
+    .then(
+      userData => res.send({
+        status: true,
+        code: httpStatus.CREATED,
+        result: userData
+      }).format()
+    )
+    .catch( err => 
       res.send({
-        message: 'This "username" is already exists.',
-        code: httpStatus.CONFLICT,
         status: false,
-      });
-    } else {
-      const user = new User({
-        id: nextUserID,
-        username: username,
-        password: password,
-        name: name,
-        dob: dob
-      });
-
-      user.save()
-      .then(
-        userData => res.send({
-          status: true,
-          code: httpStatus.CREATED,
-          data: userData
-        }).format()
-      )
-      .catch( err => 
-        res.send({
-          status: true,
-          code: httpStatus.SERVER_ERROR,
-          result: err
-        })
-      )
-    }
+        code: httpStatus.SERVER_ERROR,
+        result: err
+      })
+    )
   },
 
   editUserInfo: async (req, res, next) => {
@@ -112,13 +104,13 @@ module.exports = {
     try {
       res.send({
         status: true,
-        code: httpStatus.NO_CONTENT,
-        data: data
+        code: httpStatus.OK,
+        result:data
       })
     }
     catch( err ) {
       res.send({
-        status: true,
+        status: false,
         code: httpStatus.SERVER_ERROR,
         result: err
       })
@@ -126,7 +118,7 @@ module.exports = {
   },
 
   removeUser: async (req, res, next) => {
-    const id = req.params.id || false;
+    const id = req.params.id;
 
     User.remove({id: id})
     .then( data => 
@@ -138,7 +130,7 @@ module.exports = {
     )
     .catch( err => 
       res.send({
-        status: true,
+        status: false,
         code: httpStatus.SERVER_ERROR,
         result: err
       })

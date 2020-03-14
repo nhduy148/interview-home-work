@@ -67,9 +67,9 @@ userSchema.method({
 
     return formatted;
   },
-  async comparePassword(password) {
-    return bcrypt.compare(password, this.password);
-  }
+  async comparePassword(password) {    
+    return await bcrypt.compare(password, this.password);
+  },
 })
 
 //Export the model

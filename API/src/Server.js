@@ -20,14 +20,15 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use(bodyParser.json());
 
-app.use(cors({
-	origin: 'http://localhost:5002',
-	credentials: true
-}))
+// app.use(cors({
+// 	origin: 'http://localhost:5003',
+// 	credentials: true
+// }))
 
 const user = require('./api/v1/routes/user.route');
 const post = require('./api/v1/routes/post.route');
-// let authRoutes = require('./routes/auth.route');
+const comment = require('./api/v1/routes/comment.route');
+const authen = require('./api/v1/routes/auth.route');
 
 app.use( "/user", user, (err, req, res, next) => {
   res.status(400).json(err);
@@ -37,10 +38,18 @@ app.use( "/post", post, (err, req, res, next) => {
   res.status(400).json(err);
 })
 
+app.use( "/comment", comment, (err, req, res, next) => {
+  res.status(400).json(err);
+})
+
+app.use( "/auth", authen, (err, req, res, next) => {
+  res.status(400).json(err);
+})
+
 
 app.use( (req, res, next) => {
-	// res.setHeader('Access-Control-Allow-Origin', '*');
-	// res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+	res.setHeader('Access-Control-Allow-Origin', '*');
+	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
 	// res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
 	// res.setHeader('Access-Control-Allow-Credentials', true);
 	// res.setHeader("Content-Type", "text/plain");

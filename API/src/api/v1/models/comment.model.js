@@ -21,7 +21,6 @@ const commentSchema = new Schema({
   },
   created_at: {
     type: Number,
-    required: true,
     default: Date.now(),
   },
 });

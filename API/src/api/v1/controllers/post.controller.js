@@ -55,6 +55,9 @@ module.exports = {
 
   // Full information ( with comments and author )
   getPostsFull: async (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+    
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;    
     const skip = limit * (page - 1);
@@ -99,6 +102,7 @@ module.exports = {
             return {
               id: cmt.id,
               content: cmt.content,
+              created_at: cmt.created_at,
               owner: {
                 id: cmt.owner.id,
                 name: ownerName,
@@ -141,6 +145,76 @@ module.exports = {
 
     })
     .catch( err => {
+      res.send({
+        status: false,
+        code: httpStatus.SERVER_ERROR,
+        result: err
+      })
+    })
+  },
+
+  getPostsDetails: async (req, res) => {
+    let { id } = req.params;
+    id = parseInt(id)
+
+    Post
+    .aggregate()
+    .match({id: id})
+    .lookup({
+      from: 'users',
+      localField: 'owner',
+      foreignField: 'id',
+      as: 'owner'
+    })
+    .unwind("owner")
+    .then( async postData => {
+      postData = postData[0];
+      
+      // Get comment information.
+      let comments = await Comment
+      .aggregate()
+      .match({post: id})
+      .lookup({
+        from: 'users',
+        localField: 'owner',
+        foreignField: 'id',
+        as: 'owner'
+      })
+      .unwind("owner")
+      
+      comments = comments.map( cmt => {
+        const ownerName = cmt.owner.name === "" ? "Anonymous" : cmt.owner.name;
+        return {
+          id: cmt.id,
+          content: cmt.content,
+          owner: {
+            id: cmt.owner.id,
+            name: ownerName,
+            created_at: cmt.owner.created_at
+          }
+        }
+      })
+
+      const owner = {
+        id: postData.owner.id,
+        name: postData.owner.name
+      }
+      const result = {
+        id: postData.id,
+        title: postData.title,
+        owner: owner,
+        tags: postData.tags,
+        created_at: postData.created_at,
+        comments: comments
+      } 
+
+      res.send({
+        status: true,
+        code: httpStatus.OK,
+        result: result,
+      })
+    })
+    .catch( err => {
       console.log(err)
       res.send({
         status: false,
@@ -148,5 +222,110 @@ module.exports = {
         result: err
       })
     })
+  },
+
+  addPost: async (req, res) => {
+    let id = await nextID("posts");
+    let { title, content, tags, owner } = req.body;
+
+    tags = typeof tags == Array ? tags : [...tags];
+    owner = parseInt(owner);
+
+
+    console.log(id);
+    
+    if(!owner) {
+      res.send({
+        status: false,
+        code: httpStatus.UNAUTHORIZED,
+        result: "Please login to create a post."
+      })
+    } else {
+      const postData = new Post({
+        id: id,
+        title: title,
+        content: content,
+        owner: owner,
+        tags: tags
+      })
+  
+      postData
+      .save()
+      .then( 
+        data => res.send({
+          status: true,
+          code: httpStatus.CREATED,
+          result: data
+        })
+      )
+      .catch( err => 
+        res.send({
+          status: false,
+          code: httpStatus.SERVER_ERROR,
+          result: err
+        })
+      )
+    }
+  },
+
+  updatePost: (req, res) => {
+    const { title, content, owner } = req.body;
+    let tags = req.body.tags;
+    const { id } = req.params;
+
+    tags = typeof tags == Array ? tags : [...tags];
+
+    if(!owner) {
+      res.send({
+        status: false,
+        code: httpStatus.UNAUTHORIZED,
+        result: "Please login to update a post."
+      })
+    } else {
+      const newPostData = {
+        title: title,
+        content: content,
+        tags: tags
+      }
+
+      Post.findOneAndUpdate(
+        {id: id},
+        newPostData
+      )
+      .then(
+        data => res.send({
+          status: true,
+          code: httpStatus.OK,
+          result:data
+        })
+      )
+      .catch(
+        res.send({
+          status: false,
+          code: httpStatus.SERVER_ERROR,
+          result: err
+        })
+      )
+    }
+  },
+
+  deletePost: (req, res) => {
+    const { id } = req.params;
+
+    Post.remove({id: id})
+    .then( data => 
+        res.send({
+          status: true,
+          code: httpStatus.OK,
+          result: data,
+        })
+    )
+    .catch( err => 
+      res.send({
+        status: false,
+        code: httpStatus.SERVER_ERROR,
+        result: err
+      })
+    )
   }
 }
